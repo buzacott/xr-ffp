@@ -4,7 +4,7 @@ This repo contains Python scripts to calculate flux footprints with the Kljun
 et al. 2015 FFP model and store them in netCDF files. The code takes advantage
 of dask to calculate the footprints in parallel and to reduce memory usage by
 streaming the results to disk. There are probably some optimisations that could
-be made still but overall things works quite well.
+be made but overall things work quite well.
 
 The footprint model needs to be downloaded from
 https://footprint.kljun.net/download.php and the `FFP_Python` folder added to
