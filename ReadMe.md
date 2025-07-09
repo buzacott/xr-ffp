@@ -15,12 +15,18 @@ Create the conda environment with:
 conda env create -f environment.yml
 ```
 
-The example can be run with `python xr-ffp.py`. The example creates two result
-files demonstrating lossless and lossy compression. One month of half-hourly
-footprints with lossless compression with the params
-`domain=[-300, 300, -300, 300]` and `dy=dx=1` results in a 500MB file, while
-with lossy uint16 compression the results file is only 25MB!
+The example can be run with:
+
+```
+conda activate xrffp
+python xr-ffp.py
+```
+
+The example creates two result files demonstrating lossless and lossy
+compression. One month of half-hourly footprints with lossless compression with
+the params `domain=[-300, 300, -300, 300]` and `dy=dx=1` results in a ~500MB
+file, while with lossy uint16 compression the results file is only ~25MB!
 
 The `analyse_results.ipynb` notebook quickly compares the compressed `.nc` files
-and shows the errors of the mean footprint values and the weighted area
-extraction of an area of interest.
+and also demonstrates how to calculate the relative contribution of an area of
+interest with the files.
