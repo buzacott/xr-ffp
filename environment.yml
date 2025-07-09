@@ -1,0 +1,14 @@
+name: xrffp
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - numpy
+  - pandas
+  - xarray
+  - rioxarray
+  - dask
+  - geopandas
+  - scipy
+  - netcdf4
+  - ipykernel
