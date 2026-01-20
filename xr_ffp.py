@@ -5,6 +5,8 @@ import pandas as pd
 import xarray as xr
 from dask.distributed import Client, LocalCluster, progress
 from xr_ffp_funcs import *
+from numcodecs import Blosc
+#from numcodecs.fixedscaleoffset import FixedScaleOffset
 
 # Read in input data
 data = pd.read_csv(
@@ -25,6 +27,14 @@ dx = 1
 y = np.arange(domain[2], domain[3]+1, dy, dtype=np.int16)
 x = np.arange(domain[0], domain[1]+1, dx, dtype=np.int16)
 
+# Compressor for writing lossless results
+compressor = Blosc(cname='zstd', clevel=9, shuffle=Blosc.SHUFFLE)
+encoding = {
+    'fp': {
+        'compressor': compressor,
+        'dtype': np.float32
+    }
+}
 
 # Make output dir
 dst = 'results'
@@ -47,7 +57,7 @@ if __name__ == '__main__':
         # Drop group cols, not needed
         cdata = cdata.drop(['year', 'month'], axis=1)
 
-        fname = os.path.join(dst, f'{year}-{month:02}_ffp.nc')
+        fname = os.path.join(dst, f'{year}-{month:02}_ffp.zarr')
 
         try:
             # Initialise array, copy template, and setup job to calc footprints
@@ -60,10 +70,9 @@ if __name__ == '__main__':
                                                "dx": dx})
             
             # Write full file to disk to reduce memory usage
-            write_job = xds.to_netcdf(fname,
-                                      mode='w',
-                                      engine='netcdf4',
-                                      compute=False)
+            write_job = xds.to_zarr(fname,
+                                    mode='w',
+                                    compute=False)
             
             # Start job and monitor progress
             write_job = write_job.persist()
@@ -73,36 +82,15 @@ if __name__ == '__main__':
         except KeyboardInterrupt:
                 sys.exit(0)
     
-        print(f'Compressing...')
-        # Compression could be streamed to disk during the mapping but in my
-        # testing it was very slow
-        
+        print(f'Compressing...')        
         # Load the dataset in fully
         with xr.open_dataset(fname) as ds:
             xds = ds.load()
 
-        #-------------------#
-        # Lossless encoding #
-        #-------------------#
-        # Uncompressed month of footprints is around 2GB with the example
-        # parameters (dx=dy=1, x=y=601)
-        # With lossless compression that goes to around 500MB
-        encoding = {
-            "fp": {
-                "zlib": True
-            }
-        }
-        
-        # Write, overwrite uncompressed file
-        xds.to_netcdf(fname,
-                      mode='w',
-                      engine='netcdf4',
-                      encoding=encoding)
-
         #----------------#
         # Lossy encoding #
         #----------------#
-        # Lossy encoding by converting footprints to uint16 and applying zlib
+        # Lossy encoding by converting footprints to uint16
         # Using uint16 since footprint data is all >= 0
         # Valid range is 0 to 2**16 - 2
         # Missing value is set to 2 ** 16 - 1
@@ -116,21 +104,19 @@ if __name__ == '__main__':
         add_offset = fp_min
         scale_factor = (fp_max - fp_min) / (2**16 - 2)
 
-        encoding = {
+        lossy_encoding = {
             "fp": {
                 "dtype": "uint16",
                 "scale_factor": scale_factor,
                 "add_offset": add_offset,
                 'missing_value': 2**16 - 1,
-                '_FillValue': 2**16 - 1,
-                "zlib": True
+                '_FillValue': 2**16 - 1
             }
         }
         # Write
-        xds.to_netcdf(os.path.join(dst, f'{year}-{month:02}_ffp_lossy.nc'),
-                      mode='w',
-                      engine='netcdf4',
-                      encoding=encoding)
+        xds.to_zarr(os.path.join(dst, f'{year}-{month:02}_ffp_lossy.zarr'),
+                    encoding=lossy_encoding,
+                    mode='w')
 
         xds.close()
     
