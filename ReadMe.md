@@ -1,7 +1,7 @@
 ## xr-ffp
 
 This repo contains Python scripts to calculate flux footprints with the Kljun
-et al. 2015 FFP model and store them in netCDF files. The code takes advantage
+et al. 2015 FFP model and store them in zarr files. The code takes advantage
 of dask to calculate the footprints in parallel and to reduce memory usage by
 streaming the results to disk. There are probably some optimisations that could
 be made but overall things work quite well.
@@ -27,6 +27,6 @@ compression. One month of half-hourly footprints with lossless compression with
 the params `domain=[-300, 300, -300, 300]` and `dy=dx=1` results in a ~500MB
 file, while with lossy uint16 compression the results file is only ~25MB!
 
-The `analyse_results.ipynb` notebook quickly compares the compressed `.nc` files
+The `analyse_results.ipynb` notebook quickly compares the compressed `.zarr` files
 and also demonstrates how to calculate the relative contribution of an area of
 interest with the files.
